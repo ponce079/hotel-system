@@ -194,7 +194,7 @@ const Reservas = () => {
       setSuccess(`Factura ${response.data.data.numero_factura} generada exitosamente. Total: $${response.data.data.total.toFixed(2)}`);
       
       setTimeout(() => {
-        navigate('/facturas');
+        navigate('/admin/facturacion');
       }, 2000);
     } catch (err) {
       setError(err.response?.data?.message || 'Error al generar factura');

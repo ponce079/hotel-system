@@ -1,10 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
-const auth = require('../middleware/auth');
+const { authenticate } = require('../middleware/auth');
+const { checkRole } = require('../middleware/checkRole');
+
 
 // Obtener todas las facturas
-router.get('/', auth, async (req, res) => {
+router.get('/', authenticate, async (req, res) => {
   try {
     const { rol } = req.user;
     const { estado, fecha_desde, fecha_hasta } = req.query;
@@ -56,7 +58,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 // Obtener una factura por ID
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -135,7 +137,7 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 // Crear factura desde una reserva
-router.post('/generar-desde-reserva/:reservaId', auth, async (req, res) => {
+router.post('/generar-desde-reserva/:reservaId', authenticate, async (req, res) => {
   const connection = await pool.getConnection();
   
   try {
@@ -248,7 +250,7 @@ router.post('/generar-desde-reserva/:reservaId', auth, async (req, res) => {
 });
 
 // Registrar pago en una factura
-router.post('/:id/pagos', auth, async (req, res) => {
+router.post('/:id/pagos', authenticate, async (req, res) => {
   const connection = await pool.getConnection();
   
   try {
@@ -410,7 +412,7 @@ router.post('/:id/pagos', auth, async (req, res) => {
 });
 
 // Anular factura
-router.post('/:id/anular', auth, async (req, res) => {
+router.post('/:id/anular', authenticate, async (req, res) => {
   try {
     const { rol } = req.user;
     const { id } = req.params;
@@ -462,7 +464,7 @@ router.post('/:id/anular', auth, async (req, res) => {
 });
 
 // Obtener resumen de pagos de una factura
-router.get('/:id/resumen-pagos', auth, async (req, res) => {
+router.get('/:id/resumen-pagos', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
 

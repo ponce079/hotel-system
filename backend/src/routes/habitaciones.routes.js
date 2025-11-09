@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
-const auth = require('../middleware/auth');
+const { authenticate } = require('../middleware/auth');
+const { checkRole } = require('../middleware/checkRole');
 
 // Obtener todas las habitaciones
-router.get('/', auth, async (req, res) => {
+router.get('/', authenticate, async (req, res) => {
   try {
     const query = `
       SELECT 
@@ -31,7 +32,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 // Obtener habitaciones disponibles
-router.get('/disponibles', auth, async (req, res) => {
+router.get('/disponibles', authenticate, async (req, res) => {
   try {
     const query = `
       SELECT 
@@ -59,7 +60,7 @@ router.get('/disponibles', auth, async (req, res) => {
 });
 
 // Obtener una habitación por ID
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -99,7 +100,7 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 // Crear una nueva habitación
-router.post('/', auth, async (req, res) => {
+router.post('/', authenticate, async (req, res) => {
   try {
     const { rol } = req.user;
 
@@ -153,7 +154,7 @@ router.post('/', auth, async (req, res) => {
 });
 
 // Actualizar una habitación
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', authenticate, async (req, res) => {
   try {
     const { rol } = req.user;
     const { id } = req.params;
@@ -195,7 +196,7 @@ router.put('/:id', auth, async (req, res) => {
 });
 
 // Cambiar estado de habitación
-router.patch('/:id/estado', auth, async (req, res) => {
+router.patch('/:id/estado', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
     const { estado } = req.body;
@@ -235,7 +236,7 @@ router.patch('/:id/estado', auth, async (req, res) => {
 });
 
 // Obtener tipos de habitación
-router.get('/tipos-habitacion/all', auth, async (req, res) => {
+router.get('/tipos-habitacion/all', authenticate, async (req, res) => {
   try {
     const [tipos] = await pool.query(
       'SELECT * FROM tipos_habitacion WHERE activo = TRUE ORDER BY nombre'

@@ -4,11 +4,9 @@ import {
   Container,
   Typography,
   Box,
-  Paper,
   Button,
   Card,
   CardContent,
-  CardActions,
   Grid,
   Chip,
   Alert,
@@ -17,7 +15,9 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Divider
+  Divider,
+  Fade,
+  Paper
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -27,11 +27,26 @@ import {
   Person as PersonIcon,
   Phone as PhoneIcon,
   Email as EmailIcon,
-  AttachMoney as MoneyIcon
+  AttachMoney as MoneyIcon,
+  CalendarToday as CalendarIcon,
+  CheckCircle as CheckCircleIcon,
+  Restaurant as RestaurantIcon,
+  ArrowForward as ArrowForwardIcon
 } from '@mui/icons-material';
 import api from '../config/api';
 import AgregarServiciosDialog from '../components/AgregarServiciosDialog';
-import { Restaurant as RestaurantIcon } from '@mui/icons-material';
+
+// Imágenes por tipo de habitación
+const getHabitacionImagen = (tipoHabitacion) => {
+  const imagenes = {
+    'Individual': 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=800&q=80',
+    'Doble': 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800&q=80',
+    'Triple': 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=800&q=80',
+    'Suite': 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&q=80',
+    'Suite Presidencial': 'https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=800&q=80'
+  };
+  return imagenes[tipoHabitacion] || 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?w=800&q=80';
+};
 
 const MisReservas = () => {
   const navigate = useNavigate();
@@ -70,10 +85,9 @@ const MisReservas = () => {
   };
 
   const cancelarReserva = async (id) => {
-    if (!window.confirm('¿Estás seguro de cancelar esta reserva?')) {
+    if (!window.confirm('¿Está seguro de cancelar esta reserva?')) {
       return;
     }
-
     setCancelando(true);
     try {
       await api.delete(`/reservas/${id}`);
@@ -88,26 +102,26 @@ const MisReservas = () => {
   };
 
   const abrirServicios = (reservaId) => {
-  setReservaServiciosId(reservaId);
-  setDialogServiciosOpen(true);
-};
+    setReservaServiciosId(reservaId);
+    setDialogServiciosOpen(true);
+  };
 
   const getEstadoColor = (estado) => {
     const colores = {
-      pendiente: 'warning',
-      confirmada: 'info',
-      check_in: 'success',
-      check_out: 'default',
-      cancelada: 'error'
+      pendiente: '#FFB74D',
+      confirmada: '#4FC3F7',
+      check_in: '#C9A86A',
+      check_out: '#90A4AE',
+      cancelada: '#E57373'
     };
-    return colores[estado] || 'default';
+    return colores[estado] || '#90A4AE';
   };
 
   const getEstadoLabel = (estado) => {
     const labels = {
       pendiente: 'Pendiente',
       confirmada: 'Confirmada',
-      check_in: 'Check-in Realizado',
+      check_in: 'Check-in',
       check_out: 'Finalizada',
       cancelada: 'Cancelada'
     };
@@ -116,161 +130,363 @@ const MisReservas = () => {
 
   if (loading) {
     return (
-      <Container maxWidth="lg" sx={{ py: 4, textAlign: 'center' }}>
-        <CircularProgress />
-      </Container>
+      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#FAFAFA' }}>
+        <CircularProgress sx={{ color: '#C9A86A' }} />
+      </Box>
     );
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Box>
-          <Typography variant="h4" gutterBottom>
+    <Box sx={{ minHeight: '100vh', bgcolor: '#FAFAFA', py: 6 }}>
+      <Container maxWidth="lg">
+        {/* Header */}
+        <Box sx={{ mb: 5, textAlign: 'center' }}>
+          <Typography
+            variant="h3"
+            sx={{
+              fontWeight: 300,
+              mb: 1,
+              fontFamily: '"Playfair Display", serif',
+              color: '#2C2C2C'
+            }}
+          >
             Mis Reservas
           </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Gestiona tus reservas y consulta tu historial
-          </Typography>
-        </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => navigate('/nueva-reserva')}
-        >
-          Nueva Reserva
-        </Button>
-      </Box>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError('')}>
-          {error}
-        </Alert>
-      )}
-
-      {reservas.length === 0 ? (
-        <Paper sx={{ p: 6, textAlign: 'center' }}>
-          <HotelIcon sx={{ fontSize: 80, color: 'text.secondary', mb: 2 }} />
-          <Typography variant="h6" gutterBottom>
-            No tienes reservas
-          </Typography>
-          <Typography variant="body2" color="text.secondary" paragraph>
-            Comienza a planificar tu estadía creando una nueva reserva
+          <Box sx={{ width: 60, height: 2, bgcolor: '#C9A86A', mx: 'auto', mb: 2 }} />
+          <Typography variant="body1" sx={{ color: '#666', fontWeight: 300, mb: 3 }}>
+            Gestione sus reservas y consulte su historial
           </Typography>
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => navigate('/nueva-reserva')}
+            onClick={() => navigate('/cliente/nueva-reserva')}
+            sx={{
+              bgcolor: '#C9A86A',
+              color: 'white',
+              px: 4,
+              py: 1.5,
+              borderRadius: 0,
+              letterSpacing: '0.1em',
+              '&:hover': {
+                bgcolor: '#B8956A'
+              }
+            }}
           >
-            Crear Primera Reserva
+            NUEVA RESERVA
           </Button>
-        </Paper>
-      ) : (
-        <Grid container spacing={3}>
-          {reservas.map((reserva) => {
-            const amenidades = reserva.amenidades ? JSON.parse(reserva.amenidades) : [];
-            
-            return (
-              <Grid item xs={12} md={6} key={reserva.id}>
-                <Card>
-                  <CardContent>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
-                      <Box>
-                        <Typography variant="h6">
-                          {reserva.tipo_habitacion}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Habitación {reserva.habitacion_numero}
-                        </Typography>
-                      </Box>
-                      <Chip
-                        label={getEstadoLabel(reserva.estado)}
-                        color={getEstadoColor(reserva.estado)}
-                        size="small"
-                      />
-                    </Box>
+        </Box>
 
-                    <Box sx={{ mb: 2 }}>
-                      <Typography variant="caption" color="text.secondary" display="block">
-                        Código de Reserva
-                      </Typography>
-                      <Typography variant="body2" fontWeight="bold">
-                        {reserva.codigo_reserva}
-                      </Typography>
-                    </Box>
+        {error && (
+          <Alert
+            severity="error"
+            sx={{
+              mb: 3,
+              borderRadius: 0,
+              bgcolor: '#FFEBEE',
+              color: '#C62828',
+              border: '1px solid #EF9A9A'
+            }}
+            onClose={() => setError('')}
+          >
+            {error}
+          </Alert>
+        )}
 
-                    <Divider sx={{ my: 2 }} />
+        {reservas.length === 0 ? (
+          <Fade in timeout={600}>
+            <Paper
+              elevation={0}
+              sx={{
+                p: 8,
+                textAlign: 'center',
+                border: '1px solid #E0E0E0',
+                borderRadius: 0
+              }}
+            >
+              <HotelIcon sx={{ fontSize: 100, color: '#C9A86A', mb: 3, opacity: 0.5 }} />
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: 300,
+                  mb: 2,
+                  fontFamily: '"Playfair Display", serif',
+                  color: '#2C2C2C'
+                }}
+              >
+                No Tiene Reservas
+              </Typography>
+              <Typography variant="body1" sx={{ color: '#666', mb: 4, fontWeight: 300 }}>
+                Comience a planificar su estadía creando una nueva reserva
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={() => navigate('/cliente/nueva-reserva')}
+                sx={{
+                  bgcolor: '#C9A86A',
+                  px: 4,
+                  py: 1.5,
+                  borderRadius: 0,
+                  '&:hover': { bgcolor: '#B8956A' }
+                }}
+              >
+                CREAR PRIMERA RESERVA
+              </Button>
+            </Paper>
+          </Fade>
+        ) : (
+          <Grid container spacing={4}>
+            {reservas.map((reserva, index) => (
+              <Grid item xs={12} key={reserva.id}>
+                <Fade in timeout={600 + index * 100}>
+                  <Card
+                    elevation={0}
+                    sx={{
+                      border: '1px solid #E0E0E0',
+                      borderRadius: 0,
+                      overflow: 'hidden',
+                      transition: 'all 0.3s',
+                      '&:hover': {
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                        transform: 'translateY(-4px)'
+                      }
+                    }}
+                  >
+                    <Grid container>
+                      {/* Imagen de la habitación */}
+                      <Grid item xs={12} md={4}>
+                        <Box
+                          sx={{
+                            height: { xs: 250, md: '100%' },
+                            minHeight: { md: 300 },
+                            backgroundImage: `url(${getHabitacionImagen(reserva.tipo_habitacion)})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            position: 'relative'
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              position: 'absolute',
+                              top: 16,
+                              left: 16,
+                              bgcolor: getEstadoColor(reserva.estado),
+                              color: 'white',
+                              px: 2,
+                              py: 0.5,
+                              fontWeight: 500,
+                              fontSize: '0.85rem',
+                              letterSpacing: '0.1em'
+                            }}
+                          >
+                            {getEstadoLabel(reserva.estado).toUpperCase()}
+                          </Box>
+                        </Box>
+                      </Grid>
 
-                    <Grid container spacing={2}>
-                      <Grid item xs={6}>
-                        <Typography variant="caption" color="text.secondary" display="block">
-                          Check-in
-                        </Typography>
-                        <Typography variant="body2">
-                          {new Date(reserva.fecha_entrada).toLocaleDateString()}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography variant="caption" color="text.secondary" display="block">
-                          Check-out
-                        </Typography>
-                        <Typography variant="body2">
-                          {new Date(reserva.fecha_salida).toLocaleDateString()}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography variant="caption" color="text.secondary" display="block">
-                          Huéspedes
-                        </Typography>
-                        <Typography variant="body2">
-                          {reserva.numero_huespedes} {reserva.numero_huespedes === 1 ? 'persona' : 'personas'}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography variant="caption" color="text.secondary" display="block">
-                          Total
-                        </Typography>
-                        <Typography variant="h6" color="primary">
-                          ${parseFloat(reserva.precio_total).toFixed(2)}
-                        </Typography>
+                      {/* Contenido */}
+                      <Grid item xs={12} md={8}>
+                        <CardContent sx={{ p: 4 }}>
+                          <Box sx={{ mb: 3 }}>
+                            <Typography
+                              variant="h4"
+                              sx={{
+                                fontWeight: 300,
+                                mb: 1,
+                                fontFamily: '"Playfair Display", serif',
+                                color: '#2C2C2C'
+                              }}
+                            >
+                              {reserva.tipo_habitacion}
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: '#999', fontWeight: 300 }}>
+                              Habitación {reserva.habitacion_numero}
+                            </Typography>
+                          </Box>
+
+                          <Box sx={{ mb: 3 }}>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: '#999',
+                                letterSpacing: '0.1em',
+                                display: 'block',
+                                mb: 0.5
+                              }}
+                            >
+                              CÓDIGO DE RESERVA
+                            </Typography>
+                            <Typography
+                              variant="h6"
+                              sx={{
+                                fontFamily: '"Courier New", monospace',
+                                color: '#C9A86A',
+                                letterSpacing: '0.15em'
+                              }}
+                            >
+                              {reserva.codigo_reserva}
+                            </Typography>
+                          </Box>
+
+                          <Divider sx={{ my: 3 }} />
+
+                          <Grid container spacing={3}>
+                            <Grid item xs={6} sm={3}>
+                              <Box>
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    color: '#999',
+                                    letterSpacing: '0.1em',
+                                    display: 'block'
+                                  }}
+                                >
+                                  CHECK-IN
+                                </Typography>
+                                <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                                  {new Date(reserva.fecha_entrada).toLocaleDateString('es-AR', {
+                                    day: '2-digit',
+                                    month: 'short'
+                                  })}
+                                </Typography>
+                              </Box>
+                            </Grid>
+
+                            <Grid item xs={6} sm={3}>
+                              <Box>
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    color: '#999',
+                                    letterSpacing: '0.1em',
+                                    display: 'block'
+                                  }}
+                                >
+                                  CHECK-OUT
+                                </Typography>
+                                <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                                  {new Date(reserva.fecha_salida).toLocaleDateString('es-AR', {
+                                    day: '2-digit',
+                                    month: 'short'
+                                  })}
+                                </Typography>
+                              </Box>
+                            </Grid>
+
+                            <Grid item xs={6} sm={3}>
+                              <Box>
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    color: '#999',
+                                    letterSpacing: '0.1em',
+                                    display: 'block'
+                                  }}
+                                >
+                                  HUÉSPEDES
+                                </Typography>
+                                <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                                  {reserva.numero_huespedes} {reserva.numero_huespedes === 1 ? 'persona' : 'personas'}
+                                </Typography>
+                              </Box>
+                            </Grid>
+
+                            <Grid item xs={6} sm={3}>
+                              <Box>
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    color: '#999',
+                                    letterSpacing: '0.1em',
+                                    display: 'block'
+                                  }}
+                                >
+                                  TOTAL
+                                </Typography>
+                                <Typography
+                                  variant="h5"
+                                  sx={{
+                                    color: '#C9A86A',
+                                    fontWeight: 300,
+                                    fontFamily: '"Playfair Display", serif'
+                                  }}
+                                >
+                                  ${parseFloat(reserva.precio_total).toFixed(2)}
+                                </Typography>
+                              </Box>
+                            </Grid>
+                          </Grid>
+
+                          <Box sx={{ display: 'flex', gap: 2, mt: 4, flexWrap: 'wrap' }}>
+                            <Button
+                              variant="outlined"
+                              onClick={() => verDetalle(reserva.id)}
+                              endIcon={<ArrowForwardIcon />}
+                              sx={{
+                                borderColor: '#C9A86A',
+                                color: '#C9A86A',
+                                borderRadius: 0,
+                                px: 3,
+                                '&:hover': {
+                                  borderColor: '#B8956A',
+                                  bgcolor: 'rgba(201, 168, 106, 0.05)'
+                                }
+                              }}
+                            >
+                              VER DETALLE
+                            </Button>
+
+                            {(reserva.estado === 'confirmada' || reserva.estado === 'check_in') && (
+                              <Button
+                                variant="outlined"
+                                startIcon={<RestaurantIcon />}
+                                onClick={() => abrirServicios(reserva.id)}
+                                sx={{
+                                  borderColor: '#C9A86A',
+                                  color: '#C9A86A',
+                                  borderRadius: 0,
+                                  px: 3,
+                                  '&:hover': {
+                                    borderColor: '#B8956A',
+                                    bgcolor: 'rgba(201, 168, 106, 0.05)'
+                                  }
+                                }}
+                              >
+                                SERVICIOS
+                              </Button>
+                            )}
+
+                            {reserva.estado === 'pendiente' && (
+                              <Button
+                                variant="outlined"
+                                startIcon={<CancelIcon />}
+                                onClick={() => cancelarReserva(reserva.id)}
+                                sx={{
+                                  borderColor: '#C62828',
+                                  color: '#C62828',
+                                  borderRadius: 0,
+                                  px: 3,
+                                  '&:hover': {
+                                    borderColor: '#B71C1C',
+                                    bgcolor: 'rgba(198, 40, 40, 0.05)'
+                                  }
+                                }}
+                              >
+                                CANCELAR
+                              </Button>
+                            )}
+                          </Box>
+                        </CardContent>
                       </Grid>
                     </Grid>
-                  </CardContent>
-                  <CardActions>
-                      <Button size="small" onClick={() => verDetalle(reserva.id)}>
-                        Ver Detalle
-                      </Button>
-  
-                        {/* Botón de servicios para reservas activas */}
-                        {(reserva.estado === 'confirmada' || reserva.estado === 'check_in') && (
-                      <Button 
-                      size="small" 
-                      color="primary"
-                      startIcon={<RestaurantIcon />}
-                      onClick={() => abrirServicios(reserva.id)} >
-                      Servicios
-                    </Button>
-                    )}
-  
-                    {reserva.estado === 'pendiente' && (
-                    <Button
-                    size="small"
-                    color="error"
-                    startIcon={<CancelIcon />}
-                    onClick={() => cancelarReserva(reserva.id)}
-                    >
-                     Cancelar
-                      </Button>
-                        )}
-                  </CardActions>
-                </Card>
+                  </Card>
+                </Fade>
               </Grid>
-            );
-          })}
-        </Grid>
-      )}
+            ))}
+          </Grid>
+        )}
 
-      {/* Dialog de Servicios */}
+        {/* Dialog de Servicios */}
         <AgregarServiciosDialog
           open={dialogServiciosOpen}
           onClose={() => setDialogServiciosOpen(false)}
@@ -278,141 +494,242 @@ const MisReservas = () => {
           onServicioAgregado={cargarReservas}
         />
 
-      {/* Dialog de Detalle */}
-      <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>
-        {reservaDetalle && (
-          <>
-            <DialogTitle>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="h6">Detalle de Reserva</Typography>
-                <Chip
-                  label={getEstadoLabel(reservaDetalle.estado)}
-                  color={getEstadoColor(reservaDetalle.estado)}
-                />
-              </Box>
-            </DialogTitle>
-            <DialogContent dividers>
-              <Grid container spacing={3}>
-                <Grid item xs={12}>
-                  <Typography variant="h6" gutterBottom>
-                    Información de la Reserva
+        {/* Dialog de Detalle con Imagen de Fondo */}
+        <Dialog
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          maxWidth="md"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: 0,
+              border: '1px solid #E0E0E0',
+              overflow: 'hidden',
+              position: 'relative',
+              backgroundImage: reservaDetalle ? `url(${getHabitacionImagen(reservaDetalle.tipo_habitacion)})` : 'none',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
+            }
+          }}
+        >
+          {reservaDetalle && (
+            <>
+              {/* Overlay oscuro para legibilidad */}
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  background: 'linear-gradient(to bottom, rgba(44, 44, 44, 0.95), rgba(26, 26, 26, 0.97))',
+                  zIndex: 0
+                }}
+              />
+
+              <DialogTitle 
+                sx={{ 
+                  borderBottom: '1px solid rgba(201, 168, 106, 0.3)',
+                  position: 'relative',
+                  zIndex: 1
+                }}
+              >
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      fontWeight: 300,
+                      fontFamily: '"Playfair Display", serif',
+                      color: 'white'
+                    }}
+                  >
+                    Detalle de Reserva
                   </Typography>
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Código de Reserva
+                  <Box
+                    sx={{
+                      bgcolor: getEstadoColor(reservaDetalle.estado),
+                      color: 'white',
+                      px: 2,
+                      py: 0.5,
+                      fontSize: '0.85rem',
+                      letterSpacing: '0.1em'
+                    }}
+                  >
+                    {getEstadoLabel(reservaDetalle.estado).toUpperCase()}
+                  </Box>
+                </Box>
+              </DialogTitle>
+
+              <DialogContent 
+                dividers 
+                sx={{ 
+                  p: 4, 
+                  position: 'relative',
+                  zIndex: 1,
+                  borderColor: 'rgba(201, 168, 106, 0.3)'
+                }}
+              >
+                <Grid container spacing={3}>
+                  <Grid item xs={12}>
+                    <Typography
+                      variant="caption"
+                      sx={{ color: '#C9A86A', letterSpacing: '0.1em' }}
+                    >
+                      CÓDIGO DE RESERVA
                     </Typography>
-                    <Typography variant="body1" fontWeight="bold">
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontFamily: '"Courier New", monospace',
+                        color: '#C9A86A',
+                        letterSpacing: '0.15em',
+                        textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                      }}
+                    >
                       {reservaDetalle.codigo_reserva}
                     </Typography>
-                  </Box>
-                </Grid>
+                  </Grid>
 
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    <HotelIcon sx={{ fontSize: 18, verticalAlign: 'middle', mr: 1 }} />
-                    Habitación
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {reservaDetalle.tipo_habitacion}
-                  </Typography>
-                  <Typography variant="body2">
-                    Habitación {reservaDetalle.habitacion_numero} - Piso {reservaDetalle.piso}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    Capacidad: {reservaDetalle.capacidad_personas} personas
-                  </Typography>
-                </Grid>
-
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    <EventIcon sx={{ fontSize: 18, verticalAlign: 'middle', mr: 1 }} />
-                    Fechas
-                  </Typography>
-                  <Typography variant="body2">
-                    Check-in: {new Date(reservaDetalle.fecha_entrada).toLocaleDateString()}
-                  </Typography>
-                  <Typography variant="body2">
-                    Check-out: {new Date(reservaDetalle.fecha_salida).toLocaleDateString()}
-                  </Typography>
-                  <Typography variant="body2" sx={{ mt: 1 }}>
-                    Huéspedes: {reservaDetalle.numero_huespedes}
-                  </Typography>
-                </Grid>
-
-                <Grid item xs={12}>
-                  <Divider />
-                </Grid>
-
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    <PersonIcon sx={{ fontSize: 18, verticalAlign: 'middle', mr: 1 }} />
-                    Huésped Principal
-                  </Typography>
-                  <Typography variant="body2">
-                    {reservaDetalle.huesped_nombre}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    <EmailIcon sx={{ fontSize: 14, verticalAlign: 'middle', mr: 0.5 }} />
-                    {reservaDetalle.huesped_email}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    <PhoneIcon sx={{ fontSize: 14, verticalAlign: 'middle', mr: 0.5 }} />
-                    {reservaDetalle.huesped_telefono}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    {reservaDetalle.tipo_documento}: {reservaDetalle.numero_documento}
-                  </Typography>
-                </Grid>
-
-                <Grid item xs={12}>
-                  <Divider />
-                </Grid>
-
-                <Grid item xs={12}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="h6">
-                      Total
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle2" gutterBottom sx={{ color: '#C9A86A', letterSpacing: '0.1em' }}>
+                      HABITACIÓN
                     </Typography>
-                    <Typography variant="h4" color="primary">
-                      ${parseFloat(reservaDetalle.precio_total).toFixed(2)}
+                    <Typography variant="h6" sx={{ fontWeight: 300, color: 'white' }}>
+                      {reservaDetalle.tipo_habitacion}
                     </Typography>
-                  </Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Precio base: ${parseFloat(reservaDetalle.precio_base).toFixed(2)}/noche
-                  </Typography>
-                </Grid>
-
-                {reservaDetalle.observaciones && (
-                  <Grid item xs={12}>
-                    <Typography variant="subtitle2" gutterBottom>
-                      Observaciones
+                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                      Habitación {reservaDetalle.habitacion_numero} • Piso {reservaDetalle.piso}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {reservaDetalle.observaciones}
+                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', mt: 1 }}>
+                      Capacidad: {reservaDetalle.capacidad_personas} personas
                     </Typography>
                   </Grid>
+
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="subtitle2" gutterBottom sx={{ color: '#C9A86A', letterSpacing: '0.1em' }}>
+                      FECHAS
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: 'white' }}>
+                      Check-in: {new Date(reservaDetalle.fecha_entrada).toLocaleDateString()}
+                    </Typography>
+                    <Typography variant="body1" sx={{ color: 'white' }}>
+                      Check-out: {new Date(reservaDetalle.fecha_salida).toLocaleDateString()}
+                    </Typography>
+                    <Typography variant="body1" sx={{ mt: 1, color: 'white' }}>
+                      Huéspedes: {reservaDetalle.numero_huespedes}
+                    </Typography>
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Divider sx={{ borderColor: 'rgba(201, 168, 106, 0.3)' }} />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Typography variant="subtitle2" gutterBottom sx={{ color: '#C9A86A', letterSpacing: '0.1em' }}>
+                      HUÉSPED PRINCIPAL
+                    </Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 500, color: 'white' }}>
+                      {reservaDetalle.huesped_nombre}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                      {reservaDetalle.huesped_email}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                      {reservaDetalle.huesped_telefono}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', mt: 1 }}>
+                      {reservaDetalle.tipo_documento}: {reservaDetalle.numero_documento}
+                    </Typography>
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Divider sx={{ borderColor: 'rgba(201, 168, 106, 0.3)' }} />
+                  </Grid>
+
+                  <Grid item xs={12}>
+                    <Box 
+                      sx={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        p: 3,
+                        bgcolor: 'rgba(201, 168, 106, 0.15)',
+                        backdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(201, 168, 106, 0.3)'
+                      }}
+                    >
+                      <Typography variant="h6" sx={{ fontWeight: 300, color: 'white' }}>
+                        Total
+                      </Typography>
+                      <Typography
+                        variant="h3"
+                        sx={{
+                          color: '#C9A86A',
+                          fontWeight: 300,
+                          fontFamily: '"Playfair Display", serif',
+                          textShadow: '0 2px 8px rgba(0,0,0,0.5)'
+                        }}
+                      >
+                        ${parseFloat(reservaDetalle.precio_total).toFixed(2)}
+                      </Typography>
+                    </Box>
+                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', mt: 1, display: 'block' }}>
+                      Precio base: ${parseFloat(reservaDetalle.precio_base).toFixed(2)}/noche
+                    </Typography>
+                  </Grid>
+
+                  {reservaDetalle.observaciones && (
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" gutterBottom sx={{ color: '#C9A86A', letterSpacing: '0.1em' }}>
+                        OBSERVACIONES
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+                        {reservaDetalle.observaciones}
+                      </Typography>
+                    </Grid>
+                  )}
+                </Grid>
+              </DialogContent>
+
+              <DialogActions sx={{ p: 3, position: 'relative', zIndex: 1, bgcolor: 'rgba(26, 26, 26, 0.9)' }}>
+                {reservaDetalle.estado === 'pendiente' && (
+                  <Button
+                    variant="outlined"
+                    startIcon={<CancelIcon />}
+                    onClick={() => cancelarReserva(reservaDetalle.id)}
+                    disabled={cancelando}
+                    sx={{
+                      borderColor: '#E57373',
+                      color: '#E57373',
+                      borderRadius: 0,
+                      '&:hover': {
+                        borderColor: '#EF5350',
+                        bgcolor: 'rgba(229, 115, 115, 0.1)'
+                      }
+                    }}
+                  >
+                    {cancelando ? 'CANCELANDO...' : 'CANCELAR RESERVA'}
+                  </Button>
                 )}
-              </Grid>
-            </DialogContent>
-            <DialogActions>
-              {reservaDetalle.estado === 'pendiente' && (
                 <Button
-                  color="error"
-                  startIcon={<CancelIcon />}
-                  onClick={() => cancelarReserva(reservaDetalle.id)}
-                  disabled={cancelando}
+                  onClick={() => setDialogOpen(false)}
+                  sx={{
+                    borderRadius: 0,
+                    color: 'rgba(255,255,255,0.7)',
+                    '&:hover': {
+                      color: '#C9A86A',
+                      bgcolor: 'rgba(201, 168, 106, 0.1)'
+                    }
+                  }}
                 >
-                  {cancelando ? 'Cancelando...' : 'Cancelar Reserva'}
+                  CERRAR
                 </Button>
-              )}
-              <Button onClick={() => setDialogOpen(false)}>
-                Cerrar
-              </Button>
-            </DialogActions>
-          </>
-        )}
-      </Dialog>
-    </Container>
+              </DialogActions>
+            </>
+          )}
+        </Dialog>
+      </Container>
+    </Box>
   );
 };
 

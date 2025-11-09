@@ -3,6 +3,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const { testConnection } = require('./config/database');
+const usuariosRoutes = require('./routes/usuarios.routes');
 
 // Importar rutas
 const authRoutes = require('./routes/authRoutes');
@@ -21,6 +22,7 @@ app.use(express.urlencoded({ extended: true }));
 // Rutas
 app.use('/api/auth', authRoutes);
 app.use('/api', apiRoutes);
+app.use('/api/usuarios', usuariosRoutes);
 
 // Ruta de prueba
 app.get('/api/health', (req, res) => {

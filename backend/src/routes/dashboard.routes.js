@@ -1,10 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
-const auth = require('../middleware/auth');
+const { authenticate } = require('../middleware/auth');
+const { checkRole } = require('../middleware/checkRole');
 
 // Obtener estadísticas del dashboard
-router.get('/estadisticas', auth, async (req, res) => {
+router.get('/estadisticas', authenticate, async (req, res) => {
   try {
     const hoy = new Date().toISOString().split('T')[0];
 
@@ -131,7 +132,7 @@ router.get('/estadisticas', auth, async (req, res) => {
 });
 
 // Obtener ingresos por mes (últimos 6 meses)
-router.get('/ingresos-mensuales', auth, async (req, res) => {
+router.get('/ingresos-mensuales', authenticate, async (req, res) => {
   try {
     const [ingresos] = await pool.query(`
       SELECT 
@@ -159,7 +160,7 @@ router.get('/ingresos-mensuales', auth, async (req, res) => {
 });
 
 // Obtener ocupación diaria del mes actual
-router.get('/ocupacion-diaria', auth, async (req, res) => {
+router.get('/ocupacion-diaria', authenticate, async (req, res) => {
   try {
     const [ocupacion] = await pool.query(`
       SELECT 

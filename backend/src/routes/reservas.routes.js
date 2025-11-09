@@ -1,10 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
-const auth = require('../middleware/auth');
+const { authenticate } = require('../middleware/auth');
+const { checkRole } = require('../middleware/checkRole');
+const { enviarConfirmacionReserva } = require('../services/emailService');
 
 // Obtener todas las reservas (admin) o solo las del usuario (cliente)
-router.get('/', auth, async (req, res) => {
+router.get('/', authenticate, async (req, res) => {
   try {
     const { rol, id: userId } = req.user;
 
@@ -43,7 +45,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 // Obtener una reserva por ID
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
     const { rol, id: userId } = req.user;
@@ -104,7 +106,7 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 // Obtener habitaciones disponibles
-router.get('/disponibilidad/habitaciones', auth, async (req, res) => {
+router.get('/disponibilidad/habitaciones', authenticate, async (req, res) => {
   try {
     const { fecha_entrada, fecha_salida } = req.query;
 
@@ -162,7 +164,7 @@ router.get('/disponibilidad/habitaciones', auth, async (req, res) => {
 });
 
 // Crear una nueva reserva
-router.post('/', auth, async (req, res) => {
+router.post('/', authenticate, async (req, res) => {
   const connection = await pool.getConnection();
   
   try {
@@ -300,6 +302,56 @@ router.post('/', auth, async (req, res) => {
 
     await connection.commit();
 
+    // ✅ AGREGAR ENVÍO DE EMAIL 
+    console.log('📧 [RESERVA] Preparando envío de email...');
+    
+    try {
+      const [huespedData] = await connection.query(
+        'SELECT nombre, apellido, email FROM huespedes WHERE id = ?',
+        [huespedId]
+      );
+
+      const [habitacionData] = await connection.query(
+        `SELECT h.numero, th.nombre as tipo
+         FROM habitaciones h
+         JOIN tipos_habitacion th ON h.tipo_habitacion_id = th.id
+         WHERE h.id = ?`,
+        [habitacion_id]
+      );
+
+      const nombreCompleto = huespedData[0].apellido 
+        ? `${huespedData[0].nombre} ${huespedData[0].apellido}` 
+        : huespedData[0].nombre;
+
+      await enviarConfirmacionReserva({
+        email: huespedData[0].email,
+        nombre: nombreCompleto,
+        reserva_id: resultReserva.insertId,
+        habitacion: `${habitacionData[0].tipo} - Habitación Nº ${habitacionData[0].numero}`,
+        fecha_entrada,
+        fecha_salida,
+        noches: dias,
+        precio_por_noche: precioBase,
+        total: precioTotal,
+        servicios: []
+      });
+
+      console.log('✅ Email de confirmación de reserva enviado a:', huespedData[0].email);
+    } catch (emailError) {
+      console.error('❌ Error al enviar email (no crítico):', emailError);
+    }
+
+    res.status(201).json({ 
+      success: true, 
+      message: 'Reserva creada exitosamente. Se ha enviado un email de confirmación.',
+      data: {
+        id: resultReserva.insertId,
+        codigo_reserva: codigoReserva,
+        precio_total: precioTotal,
+        dias: dias
+      }
+    });
+
     res.status(201).json({ 
       success: true, 
       message: 'Reserva creada exitosamente',
@@ -325,7 +377,7 @@ router.post('/', auth, async (req, res) => {
 });
 
 // Actualizar estado de reserva
-router.patch('/:id/estado', auth, async (req, res) => {
+router.patch('/:id/estado', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
     const { estado } = req.body;
@@ -399,7 +451,7 @@ router.patch('/:id/estado', auth, async (req, res) => {
 });
 
 // Cancelar reserva
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
     const { rol, id: userId } = req.user;

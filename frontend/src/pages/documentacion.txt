@@ -1,1 +1,5 @@
 npm install @mui/material @emotion/react @emotion/styled @mui/icons-material
+npm install @mui/x-date-pickers date-fns
+
+cd backend
+npm install nodemailer

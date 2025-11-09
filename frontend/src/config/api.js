@@ -1,39 +1,71 @@
+// frontend/src/config/api.js
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
-// Crear instancia de axios
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: 'http://localhost:5000/api',
   headers: {
-    'Content-Type': 'application/json',
-  },
+    'Content-Type': 'application/json'
+  }
 });
 
-// Interceptor para agregar token a las peticiones
+// Interceptor de REQUEST - Se ejecuta antes de cada petición
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('🔑 [API REQUEST] Token agregado a headers');
+      console.log('📤 [API REQUEST]', config.method.toUpperCase(), config.url);
+    } else {
+      console.log('⚠️ [API REQUEST] Sin token en localStorage');
+      console.log('📤 [API REQUEST]', config.method.toUpperCase(), config.url);
     }
+    
     return config;
   },
   (error) => {
+    console.error('❌ [API REQUEST ERROR]', error);
     return Promise.reject(error);
   }
 );
 
-// Interceptor para manejar errores de respuesta
+// Interceptor de RESPONSE - Se ejecuta después de cada petición
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('✅ [API RESPONSE] Success:', {
+      method: response.config.method.toUpperCase(),
+      url: response.config.url,
+      status: response.status
+    });
+    return response;
+  },
   (error) => {
-    if (error.response?.status === 401) {
-      // Token expirado o inválido
+    const status = error.response?.status;
+    const url = error.config?.url;
+    const message = error.response?.data?.message || error.message;
+    
+    console.error('❌ [API RESPONSE ERROR]', {
+      status,
+      url,
+      message
+    });
+    
+    // Si el token es inválido o expiró (401)
+    if (status === 401) {
+      console.log('🔒 [API 401] Token inválido/expirado - Limpiando sesión...');
+      
+      // Limpiar localStorage
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      window.location.href = '/login';
+      
+      // Redirigir al login solo si no estamos ya ahí
+      if (!window.location.pathname.includes('/login')) {
+        console.log('🔄 [API 401] Redirigiendo a /login');
+        window.location.href = '/login';
+      }
     }
+    
     return Promise.reject(error);
   }
 );

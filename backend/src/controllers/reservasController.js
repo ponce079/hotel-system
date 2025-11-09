@@ -1,4 +1,5 @@
 const { pool } = require('../config/database');
+const { enviarConfirmacionReserva } = require('../services/emailService');
 
 // Generar código único de reserva
 const generarCodigoReserva = () => {
@@ -146,7 +147,8 @@ exports.createReserva = async (req, res) => {
       fecha_salida,
       numero_huespedes,
       anticipo,
-      observaciones
+      observaciones,
+      servicios
     } = req.body;
 
     // Validar campos requeridos
@@ -179,9 +181,9 @@ exports.createReserva = async (req, res) => {
       });
     }
 
-    // Obtener precio base de la habitación
+    // Obtener información de la habitación y precio
     const [habitacion] = await connection.query(
-      `SELECT t.precio_base 
+      `SELECT h.numero, h.piso, t.nombre as tipo, t.precio_base 
        FROM habitaciones h
        JOIN tipos_habitacion t ON h.tipo_habitacion_id = t.id
        WHERE h.id = ?`,
@@ -193,6 +195,20 @@ exports.createReserva = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: 'Habitación no encontrada'
+      });
+    }
+
+    // Obtener información del huésped
+    const [huesped] = await connection.query(
+      'SELECT nombre, apellido, email FROM huespedes WHERE id = ?',
+      [huesped_id]
+    );
+
+    if (huesped.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'Huésped no encontrado'
       });
     }
 
@@ -209,6 +225,35 @@ exports.createReserva = async (req, res) => {
        numero_huespedes, precio_total, anticipo || 0, observaciones, req.user.id]
     );
 
+    const reservaId = result.insertId;
+
+    // Agregar servicios a la reserva si existen
+    let serviciosReserva = [];
+    if (servicios && servicios.length > 0) {
+      for (const servicio of servicios) {
+        const [servicioInfo] = await connection.query(
+          'SELECT nombre, precio FROM servicios WHERE id = ?',
+          [servicio.servicio_id]
+        );
+
+        if (servicioInfo.length > 0) {
+          const precio_unitario = servicioInfo[0].precio;
+          const precio_servicio = precio_unitario * servicio.cantidad;
+
+          await connection.query(
+            'INSERT INTO reserva_servicios (reserva_id, servicio_id, cantidad, precio_unitario, precio_total) VALUES (?, ?, ?, ?, ?)',
+            [reservaId, servicio.servicio_id, servicio.cantidad, precio_unitario, precio_servicio]
+          );
+
+          serviciosReserva.push({
+            nombre: servicioInfo[0].nombre,
+            cantidad: servicio.cantidad,
+            precio: precio_unitario
+          });
+        }
+      }
+    }
+
     // Actualizar estado de la habitación
     await connection.query(
       'UPDATE habitaciones SET estado = "reservada" WHERE id = ?',
@@ -217,12 +262,57 @@ exports.createReserva = async (req, res) => {
 
     await connection.commit();
 
+    // ENVIAR EMAIL DE CONFIRMACIÓN
+    console.log('📧 [RESERVA] Preparando envío de email...');
+    console.log('📧 [RESERVA] Datos del huésped:', huesped[0]);
+    console.log('📧 [RESERVA] Datos de la habitación:', habitacion[0]);
+
+    try {
+      const noches = Math.ceil(
+        (new Date(fecha_salida) - new Date(fecha_entrada)) / (1000 * 60 * 60 * 24)
+      );
+
+      const nombreCompleto = huesped[0].apellido 
+        ? `${huesped[0].nombre} ${huesped[0].apellido}` 
+        : huesped[0].nombre;
+
+      const datosEmail = {
+        email: huesped[0].email,
+        nombre: nombreCompleto,
+        reserva_id: reservaId,
+        habitacion: `${habitacion[0].tipo} - Habitación Nº ${habitacion[0].numero}`,
+        fecha_entrada,
+        fecha_salida,
+        noches,
+        precio_por_noche: habitacion[0].precio_base,
+        total: precio_total,
+        servicios: serviciosReserva
+      };
+
+      console.log('📧 [RESERVA] Datos para email:', datosEmail);
+
+      const resultEmail = await enviarConfirmacionReserva(datosEmail);
+      
+      console.log('📧 [RESERVA] Resultado del envío:', resultEmail);
+
+      if (resultEmail.success) {
+        console.log('✅ Email de confirmación de reserva enviado a:', huesped[0].email);
+      } else {
+        console.error('❌ Error al enviar email:', resultEmail.error);
+      }
+    } catch (emailError) {
+      console.error('❌ Error al enviar email (excepción):', emailError);
+      console.error('❌ Stack trace:', emailError.stack);
+    }
+
     res.status(201).json({
       success: true,
-      message: 'Reserva creada exitosamente',
-      id: result.insertId,
-      codigo_reserva,
-      precio_total
+      message: 'Reserva creada exitosamente. Se ha enviado un email de confirmación.',
+      data: {
+        id: reservaId,
+        codigo_reserva,
+        precio_total
+      }
     });
 
   } catch (error) {
@@ -260,13 +350,11 @@ exports.checkIn = async (req, res) => {
       });
     }
 
-    // Actualizar reserva a check_in
     await connection.query(
       'UPDATE reservas SET estado = "check_in", fecha_check_in = NOW() WHERE id = ?',
       [id]
     );
 
-    // Actualizar habitación a ocupada
     await connection.query(
       'UPDATE habitaciones SET estado = "ocupada" WHERE id = ?',
       [reservas[0].habitacion_id]
@@ -314,13 +402,11 @@ exports.checkOut = async (req, res) => {
       });
     }
 
-    // Actualizar reserva a check_out
     await connection.query(
       'UPDATE reservas SET estado = "check_out", fecha_check_out = NOW() WHERE id = ?',
       [id]
     );
 
-    // Actualizar habitación a limpieza
     await connection.query(
       'UPDATE habitaciones SET estado = "limpieza" WHERE id = ?',
       [reservas[0].habitacion_id]
@@ -368,13 +454,11 @@ exports.cancelarReserva = async (req, res) => {
       });
     }
 
-    // Actualizar reserva a cancelada
     await connection.query(
       'UPDATE reservas SET estado = "cancelada" WHERE id = ?',
       [id]
     );
 
-    // Liberar habitación
     await connection.query(
       'UPDATE habitaciones SET estado = "disponible" WHERE id = ?',
       [reservas[0].habitacion_id]
@@ -405,7 +489,6 @@ exports.agregarServicio = async (req, res) => {
   try {
     const { reserva_id, servicio_id, cantidad } = req.body;
 
-    // Obtener precio del servicio
     const [servicios] = await pool.query(
       'SELECT precio FROM servicios WHERE id = ?',
       [servicio_id]

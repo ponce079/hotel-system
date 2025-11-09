@@ -1,10 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { pool } = require('../config/database');
-const auth = require('../middleware/auth');
-
+const { authenticate } = require('../middleware/auth');
 // Obtener todos los tipos de habitación
-router.get('/', auth, async (req, res) => {
+router.get('/', authenticate, async (req, res) => {
   try {
     const [tipos] = await pool.query(
       'SELECT * FROM tipos_habitacion WHERE activo = TRUE ORDER BY nombre'

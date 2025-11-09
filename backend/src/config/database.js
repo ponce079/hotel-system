@@ -29,6 +29,7 @@ const testConnection = async () => {
   }
 };
 
+// EXPORTAR SOLO COMO OBJETO
 module.exports = {
   pool: promisePool,
   testConnection

@@ -3,47 +3,70 @@ import api from '../config/api';
 
 const AuthContext = createContext();
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
-  }
-  return context;
-};
-
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Verificar si hay un token guardado al cargar la aplicación
     const token = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
+    const userData = localStorage.getItem('user');
     
-    if (token && savedUser) {
-      setUser(JSON.parse(savedUser));
+    if (token && userData) {
+      try {
+        setUser(JSON.parse(userData));
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      } catch (error) {
+        console.error('Error al parsear usuario:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
     }
     setLoading(false);
   }, []);
 
   const login = async (email, password) => {
     try {
-      const response = await api.post('/auth/login', { email, password });
-      const { token, user: userData } = response.data;
-
-      // Guardar en localStorage
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(userData));
+      console.log('🔐 [AUTH LOGIN] Iniciando login para:', email);
       
-      // Actualizar estado
-      setUser(userData);
+      const response = await api.post('/auth/login', { email, password });
+      
+      console.log('📦 [AUTH LOGIN] Respuesta completa:', response);
+      console.log('📦 [AUTH LOGIN] Response.data:', response.data);
 
-      return { success: true, user: userData };
+      // ✅ Verificar que la respuesta sea exitosa
+      if (response.data && response.data.success) {
+        const { token, user: userData } = response.data.data;
+        
+        console.log('✅ [AUTH LOGIN] Login exitoso:', {
+          token: token ? 'presente' : 'ausente',
+          user: userData
+        });
+
+        // Guardar token y usuario
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(userData));
+        
+        // Configurar header de autorización
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        
+        // Actualizar estado
+        setUser(userData);
+        
+        return { success: true, user: userData };
+      } else {
+        console.error('❌ [AUTH LOGIN] Respuesta no exitosa:', response.data);
+        return { 
+          success: false, 
+          message: response.data?.message || 'Error en el inicio de sesión' 
+        };
+      }
     } catch (error) {
-      console.error('Error en login:', error);
-      return {
-        success: false,
-        message: error.response?.data?.message || 'Error al iniciar sesión'
+      console.error('❌ [AUTH LOGIN] Error en login:', error);
+      console.error('❌ [AUTH LOGIN] Error response:', error.response?.data);
+      
+      return { 
+        success: false, 
+        message: error.response?.data?.message || 'Error al iniciar sesión. Por favor, intente nuevamente.' 
       };
     }
   };
@@ -51,15 +74,31 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    delete api.defaults.headers.common['Authorization'];
     setUser(null);
   };
 
   const value = {
     user,
-    loading,
     login,
-    logout
+    logout,
+    loading,
+    isAuthenticated: !!user
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth debe ser usado dentro de AuthProvider');
+  }
+  return context;
+};
+
+export default AuthContext;
