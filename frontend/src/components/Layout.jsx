@@ -55,7 +55,7 @@ const Layout = () => {
   };
 
   const getMenuItems = () => {
-    if (user?.rol === 'administrador' || user?.rol === 'admin') {
+    if (user?.rol === 'administrador' || user?.rol === 'admin' || user?.rol === 'recepcionista' || user?.rol === 'gerente' || user?.rol === 'contador') {
       return [
         { label: 'Dashboard', path: '/admin', icon: <DashboardIcon /> },
         { label: 'Reservas', path: '/admin/reservas', icon: <HotelIcon /> },

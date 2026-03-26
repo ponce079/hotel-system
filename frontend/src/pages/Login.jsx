@@ -43,31 +43,31 @@ const Login = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+  e.preventDefault();
+  setError('');
+  setLoading(true);
 
-    try {
-      const result = await login(formData.email, formData.password);
-      
-      if (result.success) {
-        const user = result.user;
-        if (user.rol === 'admin' || user.rol === 'administrador') {
-          navigate('/admin');
-        } else if (user.rol === 'recepcionista') {
-          navigate('/recepcion');
-        } else {
-          navigate('/cliente');
-        }
+  try {
+    const result = await login(formData.email, formData.password);
+    
+    if (result.success) {
+      const user = result.user;
+      if (user.rol === 'admin' || user.rol === 'administrador') {
+        navigate('/admin');
+      } else if (user.rol === 'recepcionista' || user.rol === 'gerente' || user.rol === 'contador') {
+        navigate('/admin');
       } else {
-        setError(result.message || 'Credenciales inválidas');
+        navigate('/cliente');
       }
-    } catch (err) {
-      setError('Error inesperado al iniciar sesión');
-    } finally {
-      setLoading(false);
+    } else {
+      setError(result.message || 'Credenciales inválidas');
     }
-  };
+  } catch (err) {
+    setError('Error inesperado al iniciar sesión');
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <Box
